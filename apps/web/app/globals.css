@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 10 10 26;
+    --foreground: 222 226 230;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-cosmos-void text-cosmos-mist antialiased;
+    background-image: radial-gradient(ellipse at 20% 50%, rgba(45, 58, 140, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(103, 65, 217, 0.06) 0%, transparent 50%);
+    min-height: 100vh;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-cosmos-deep;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cosmos-indigo rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-cosmos-azure;
+  }
+
+  /* Focus ring */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-cosmos-azure ring-offset-2 ring-offset-cosmos-void;
+  }
+}
+
+@layer components {
+  .cosmos-card {
+    @apply bg-cosmos-deep border border-cosmos-midnight rounded-xl p-6;
+    background: linear-gradient(135deg, rgba(13, 17, 23, 0.95) 0%, rgba(30, 45, 90, 0.3) 100%);
+  }
+
+  .cosmos-input {
+    @apply w-full bg-cosmos-navy border border-cosmos-midnight rounded-lg px-4 py-2.5
+      text-cosmos-mist placeholder:text-cosmos-silver/50
+      focus:border-cosmos-azure focus:ring-1 focus:ring-cosmos-azure
+      transition-colors duration-200;
+  }
+
+  .cosmos-label {
+    @apply block text-sm font-medium text-cosmos-silver mb-1.5;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg font-semibold
+      bg-cosmos-azure hover:bg-cosmos-indigo text-white
+      transition-all duration-200 shadow-glow hover:shadow-glow
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg font-semibold
+      border border-cosmos-azure text-cosmos-azure hover:bg-cosmos-azure/10
+      transition-all duration-200
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg
+      text-cosmos-silver hover:text-cosmos-mist hover:bg-cosmos-midnight/50
+      transition-all duration-200;
+  }
+
+  .planet-glyph {
+    @apply font-serif text-cosmos-gold;
+  }
+}
+
+@layer utilities {
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #f59f00, #ffd43b);
+  }
+
+  .text-gradient-cosmos {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #4dabf7, #a78bfa);
+  }
+
+  .border-glow {
+    box-shadow: 0 0 0 1px rgba(75, 171, 247, 0.3), 0 0 20px rgba(75, 171, 247, 0.1);
+  }
+}

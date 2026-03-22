@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  profiles  Profile[]
+
+  @@map("users")
+}
+
+model Profile {
+  id                 String   @id @default(uuid())
+  userId             String   @map("user_id")
+  name               String
+  encryptedBirthData String   @map("encrypted_birth_data")
+  locationName       String   @map("location_name")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  charts             Chart[]
+
+  @@map("profiles")
+}
+
+model Chart {
+  id               String      @id @default(uuid())
+  profileId        String      @map("profile_id")
+  tradition        String
+  chartType        String      @map("chart_type")
+  coordinateSystem String      @map("coordinate_system")
+  houseSystem      String      @map("house_system")
+  ayanamsha        String?
+  calculatedData   Json        @map("calculated_data")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  profile          Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  syntheses        Synthesis[]
+
+  @@map("charts")
+}
+
+model Synthesis {
+  id          String    @id @default(uuid())
+  chartId     String    @map("chart_id")
+  tradition   String
+  status      String    @default("pending")
+  content     String?
+  model       String?
+  tokensUsed  Int?      @map("tokens_used")
+  error       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+  chart       Chart     @relation(fields: [chartId], references: [id], onDelete: Cascade)
+
+  @@map("syntheses")
+}
