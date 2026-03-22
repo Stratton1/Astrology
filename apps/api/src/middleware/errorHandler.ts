@@ -41,7 +41,7 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ): void {
-  const requestId = req.id ?? 'unknown';
+  const requestId = String(req.id ?? 'unknown');
   const isProduction = config.nodeEnv === 'production';
 
   // Zod validation errors

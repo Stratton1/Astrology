@@ -6,7 +6,6 @@ import { validate } from '../middleware/validate';
 import { createError } from '../middleware/errorHandler';
 import { cacheGet, cacheSet } from '../lib/redis';
 import { logger } from '../lib/logger';
-import { config } from '../lib/config';
 import {
   BirthDataSchema,
   TraditionSchema,

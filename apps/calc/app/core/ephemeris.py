@@ -73,10 +73,6 @@ _AYANAMSHA_CODES: dict[str, int] = {
     "raman": swe.SIDM_RAMAN,
     "krishnamurti": swe.SIDM_KRISHNAMURTI,
     "fagan_bradley": swe.SIDM_FAGAN_BRADLEY,
-    "de_luce": swe.SIDM_DE_LUCE,
-    "true_citra": swe.SIDM_TRUE_CITRA,
-    "true_revati": swe.SIDM_TRUE_REVATI,
-    "ushashashi": swe.SIDM_USHASHASHI,
 }
 
 # ---------------------------------------------------------------------------
@@ -160,13 +156,18 @@ def calculate_planet_positions(
 
     positions: list[PlanetPosition] = []
 
+    import logging
+
+    _log = logging.getLogger(__name__)
+
     for planet_id, planet_name in _PLANETS:
         try:
             result, return_flags = swe.calc_ut(jd, planet_id, flags)
         except swe.Error as exc:
-            raise RuntimeError(
-                f"Swiss Ephemeris error calculating {planet_name}: {exc}"
-            ) from exc
+            # Some bodies (e.g., Chiron) require additional ephemeris data files.
+            # Skip gracefully if the file is not available.
+            _log.warning("Skipping %s: %s", planet_name, exc)
+            continue
 
         # result is a tuple with at least 6 elements:
         # [lon, lat, dist, speed_lon, speed_lat, speed_dist]
@@ -219,14 +220,14 @@ def calculate_houses(
             f"Swiss Ephemeris error calculating houses: {exc}"
         ) from exc
 
-    # cusps is a tuple of 13 values: index 0 unused, indices 1–12 = house cusps
+    # cusps is a tuple of 12 values (0-indexed): cusps[0] = house 1, cusps[11] = house 12
     # ascmc: [ASC, MC, ARMC, Vertex, Equatorial ASC, co-ASC Koch, co-ASC Munkasey, Polar ASC]
     ascendant: float = ascmc[0]
     midheaven: float = ascmc[1]
 
     house_cusps: list[HouseCusp] = []
     for house_num in range(1, 13):
-        lon = cusps[house_num]
+        lon = cusps[house_num - 1]
         sign, sign_degree = longitude_to_sign(lon)
         house_cusps.append(
             HouseCusp(

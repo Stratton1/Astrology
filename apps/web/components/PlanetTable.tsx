@@ -38,12 +38,6 @@ function formatDMS(decimal: number): string {
   return `${deg}°${String(min).padStart(2, '0')}'${String(sec).padStart(2, '0')}"`;
 }
 
-function formatLongitude(longitude: number): string {
-  const sign = Math.floor(longitude / 30);
-  const degree = longitude % 30;
-  return formatDMS(degree);
-}
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------

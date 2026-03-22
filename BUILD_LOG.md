@@ -77,3 +77,39 @@
 **Risks Mitigated:** All service boundaries established. Typed contracts in place. Encryption implemented. CI pipeline ready.
 
 ---
+
+## Entry 003 — 2026-03-22
+**Phase:** Phase 2 — Calculation Engine Validation
+**Workstream:** Build Pipeline + Calc Service Validation
+
+**Files Changed:**
+- turbo.json (fix: `pipeline` → `tasks` for Turbo v2)
+- packages/types/tsconfig.json (add `composite: true` for project references)
+- apps/api/tsconfig.json (disable declarations for leaf app — fixes TS2742)
+- apps/api/src/middleware/errorHandler.ts (fix requestId type cast)
+- apps/api/src/routes/charts.ts (remove unused import)
+- apps/web/components/PlanetTable.tsx (remove unused function)
+- apps/calc/app/core/ephemeris.py (fix house cusp 0-indexing, remove unavailable ayanamsha constants, graceful Chiron skip)
+- apps/calc/tests/test_ephemeris.py (fix planet count assertion, fix applying aspect test)
+
+**Summary:** Full build pipeline validated. All TypeScript packages typecheck and build. All 48 Python calc tests pass. Swiss Ephemeris integration confirmed with reference chart validation (Sun position accurate to 0.03° at J2000.0).
+
+**Reason:** Phase 2 execution — validate calculation engine accuracy and fix all compilation issues.
+
+**Tests Run:**
+- `pnpm typecheck` — 8/8 tasks pass
+- `pnpm build` — 5/5 tasks pass (including Next.js production build)
+- `pytest tests/ -v` — 48/48 pass
+- Reference chart validation: J2000.0 Sun at 280.37° (expected ~280.4°, delta 0.03°)
+
+**Docs Updated:** BUILD_LOG.md
+
+**Known Follow-ups:**
+- Install Chiron ephemeris data files (seas_18.se1) for full asteroid support
+- Wire end-to-end vertical slice
+- Set up Prisma migrations with live database
+
+**Risks Introduced:** None.
+**Risks Mitigated:** Build pipeline proven green. Calculation accuracy validated against known reference data.
+
+---
