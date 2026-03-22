@@ -1,14 +1,15 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { createError } from '../middleware/errorHandler';
 import { logger } from '../lib/logger';
+import { enqueueSynthesisJob } from '../lib/queue';
+import { cacheGet, cacheSet } from '../lib/redis';
+import { prisma } from '../lib/prisma';
 import { TraditionSchema } from '@cosmos/types';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // All synthesis routes require authentication
 router.use(authenticate);
@@ -20,29 +21,12 @@ const GenerateSynthesisSchema = z.object({
   tradition: TraditionSchema,
 });
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Cache helpers ──────────────────────────────────────────────────────────
 
-const SYNTHESIS_SERVICE_URL =
-  process.env['SYNTHESIS_SERVICE_URL'] ?? 'http://localhost:3003';
+const SYNTHESIS_CACHE_TTL = 3600; // 1 hour
 
-async function callSynthesisService(payload: {
-  synthesisId: string;
-  chartId: string;
-  tradition: string;
-  calculatedData: unknown;
-}): Promise<void> {
-  // Fire-and-forget: the synthesis service updates the DB record when done
-  fetch(`${SYNTHESIS_SERVICE_URL}/synthesize`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(5_000),
-  }).catch((err: unknown) => {
-    logger.error(
-      { err, synthesisId: payload.synthesisId },
-      'Failed to dispatch synthesis request'
-    );
-  });
+function synthesisCacheKey(id: string): string {
+  return `synthesis:${id}`;
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -50,8 +34,7 @@ async function callSynthesisService(payload: {
 /**
  * POST /api/v1/synthesis
  * Trigger an AI synthesis for a given chart.
- * Creates a Synthesis record in "pending" state and dispatches to the
- * synthesis microservice asynchronously.
+ * Creates a Synthesis record in "pending" state and enqueues a BullMQ job.
  */
 router.post(
   '/',
@@ -78,6 +61,59 @@ router.post(
         return;
       }
 
+      // Check for existing completed synthesis for this chart + tradition
+      const existing = await prisma.synthesis.findFirst({
+        where: {
+          chartId,
+          tradition,
+          status: 'completed',
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (existing) {
+        res.json({
+          synthesis: {
+            id: existing.id,
+            chartId: existing.chartId,
+            tradition: existing.tradition,
+            status: existing.status,
+            content: existing.content,
+            model: existing.model,
+            tokensUsed: existing.tokensUsed,
+            error: existing.error,
+            createdAt: existing.createdAt.toISOString(),
+            completedAt: existing.completedAt?.toISOString() ?? null,
+          },
+          message: 'Existing synthesis returned.',
+          cached: true,
+        });
+        return;
+      }
+
+      // Check for pending/processing synthesis
+      const inProgress = await prisma.synthesis.findFirst({
+        where: {
+          chartId,
+          tradition,
+          status: { in: ['pending', 'processing'] },
+        },
+      });
+
+      if (inProgress) {
+        res.status(202).json({
+          synthesis: {
+            id: inProgress.id,
+            chartId: inProgress.chartId,
+            tradition: inProgress.tradition,
+            status: inProgress.status,
+            createdAt: inProgress.createdAt.toISOString(),
+          },
+          message: 'Synthesis already in progress. Poll GET /api/v1/synthesis/:id for status.',
+        });
+        return;
+      }
+
       // Create a pending synthesis record
       const synthesis = await prisma.synthesis.create({
         data: {
@@ -92,13 +128,28 @@ router.post(
         'Synthesis requested'
       );
 
-      // Dispatch to synthesis service (non-blocking)
-      await callSynthesisService({
+      // Enqueue BullMQ job
+      const jobId = await enqueueSynthesisJob({
         synthesisId: synthesis.id,
         chartId,
         tradition,
         calculatedData: chart.calculatedData,
       });
+
+      if (!jobId) {
+        // Queue unavailable — mark as failed
+        await prisma.synthesis.update({
+          where: { id: synthesis.id },
+          data: {
+            status: 'failed',
+            error: 'Synthesis queue unavailable. Please try again later.',
+            completedAt: new Date(),
+          },
+        });
+
+        next(createError('Synthesis service temporarily unavailable', 503, 'SERVICE_UNAVAILABLE'));
+        return;
+      }
 
       res.status(202).json({
         synthesis: {
@@ -127,6 +178,13 @@ router.get(
     const { id } = req.params as { id: string };
 
     try {
+      // Check cache first for completed syntheses
+      const cached = await cacheGet(synthesisCacheKey(id));
+      if (cached) {
+        res.json({ synthesis: JSON.parse(cached) });
+        return;
+      }
+
       const synthesis = await prisma.synthesis.findUnique({
         where: { id },
         include: {
@@ -148,20 +206,25 @@ router.get(
         return;
       }
 
-      res.json({
-        synthesis: {
-          id: synthesis.id,
-          chartId: synthesis.chartId,
-          tradition: synthesis.tradition,
-          status: synthesis.status,
-          content: synthesis.content,
-          model: synthesis.model,
-          tokensUsed: synthesis.tokensUsed,
-          error: synthesis.error,
-          createdAt: synthesis.createdAt.toISOString(),
-          completedAt: synthesis.completedAt?.toISOString() ?? null,
-        },
-      });
+      const result = {
+        id: synthesis.id,
+        chartId: synthesis.chartId,
+        tradition: synthesis.tradition,
+        status: synthesis.status,
+        content: synthesis.content,
+        model: synthesis.model,
+        tokensUsed: synthesis.tokensUsed,
+        error: synthesis.error,
+        createdAt: synthesis.createdAt.toISOString(),
+        completedAt: synthesis.completedAt?.toISOString() ?? null,
+      };
+
+      // Cache completed syntheses
+      if (synthesis.status === 'completed') {
+        await cacheSet(synthesisCacheKey(id), JSON.stringify(result), SYNTHESIS_CACHE_TTL);
+      }
+
+      res.json({ synthesis: result });
     } catch (err) {
       next(err);
     }

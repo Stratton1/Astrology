@@ -134,14 +134,13 @@ export default function ChartPage() {
       };
 
       // Create profile
-      const profile = await createProfile.mutateAsync({
+      await createProfile.mutateAsync({
         name: `${data.locationName} Chart`,
         birthData,
       });
 
       // Calculate chart
       const chartResult = await calculateChart.mutateAsync({
-        profileId: profile.id,
         birthData,
         tradition: data.tradition,
         houseSystem: data.houseSystem,

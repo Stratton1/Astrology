@@ -14,6 +14,9 @@ interface Config {
   encryptionKey: string;
   logLevel: string;
   corsOrigin: string;
+  anthropicApiKey: string | null;
+  claudeModel: string;
+  synthesisMaxTokens: number;
 }
 
 function requireEnv(name: string): string {
@@ -60,6 +63,9 @@ function loadConfig(): Config {
     encryptionKey: requireEnv('ENCRYPTION_KEY'),
     logLevel: optionalEnv('LOG_LEVEL', 'info'),
     corsOrigin: optionalEnv('CORS_ORIGIN', '*'),
+    anthropicApiKey: process.env['ANTHROPIC_API_KEY'] ?? null,
+    claudeModel: optionalEnv('CLAUDE_MODEL', 'claude-sonnet-4-20250514'),
+    synthesisMaxTokens: parseInt(optionalEnv('SYNTHESIS_MAX_TOKENS', '4096'), 10),
   };
 }
 

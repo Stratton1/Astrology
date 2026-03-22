@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useChart } from '@/lib/hooks';
 import { ChartWheel } from '@/components/ChartWheel';
 import { PlanetTable } from '@/components/PlanetTable';
+import { SynthesisPanel } from '@/components/SynthesisPanel';
+import type { Tradition } from '@cosmos/types';
 
 const ASPECT_SYMBOLS: Record<string, string> = {
   conjunction: '☌',
@@ -207,6 +209,14 @@ export default function ChartDisplayPage({ params }: { params: { id: string } })
                 </div>
               </dl>
             </div>
+
+            {/* AI Synthesis */}
+            {chartMeta.id && chartMeta.tradition && (
+              <SynthesisPanel
+                chartId={chartMeta.id}
+                tradition={chartMeta.tradition as Tradition}
+              />
+            )}
           </div>
         )}
       </div>

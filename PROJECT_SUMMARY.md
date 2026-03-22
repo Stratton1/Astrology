@@ -14,7 +14,7 @@ Turborepo monorepo with three services (web, api, calc) and three shared package
 
 ## Current Build Status
 
-Phase 4: Frontend Foundation — Complete
+Phase 5: AI Synthesis — Complete
 
 ---
 
@@ -42,6 +42,14 @@ Phase 4: Frontend Foundation — Complete
 - Shared Navbar with auth state, active route highlighting, mobile responsive nav
 - TanStack Query hooks for all API operations (auth, profiles, charts)
 - Frontend component tests (Vitest + React Testing Library — 18 tests)
+- BullMQ async synthesis queue (Redis-backed, 3 retries, exponential backoff)
+- Claude API integration via @anthropic-ai/sdk (synthesis worker process)
+- Tradition-specific synthesis prompts (Western tropical, Vedic Jyotish, Hellenistic classical)
+- Synthesis API routes with dedup, caching, and status polling
+- Synthesis UI: generate button, loading animation, markdown rendering, status badges
+- TanStack Query synthesis hooks with 3s polling for in-progress jobs
+- API synthesis tests (8 tests: prompts + queue)
+- Frontend synthesis tests (3 tests: SynthesisPanel)
 
 ---
 
@@ -76,16 +84,16 @@ Local development only. No staging or production deployed.
 
 ## Current Test Status
 
-All quality gates pass: pnpm typecheck 8/8, pnpm build 5/5, pytest 48/48, vitest 18/18. End-to-end flow validated via curl.
+All quality gates pass: pnpm typecheck 8/8, pnpm build 5/5, pytest 48/48, API vitest 8/8, web vitest 21/21. End-to-end flow validated via curl.
 
 ---
 
 ## Immediate Next Priorities
 
-1. AI synthesis integration (Phase 5) — BullMQ queue, Claude API, synthesis UI
+1. Multi-tradition expansion (Phase 6) — Vedic sidereal, Hellenistic features
 2. Switch to PostgreSQL when Docker is available
 3. Add Redis for production caching
-4. Multi-tradition expansion (Phase 6) — Vedic sidereal, Hellenistic features
+4. E2E tests with Playwright (Phase 7)
 
 ---
 
@@ -105,4 +113,4 @@ All quality gates pass: pnpm typecheck 8/8, pnpm build 5/5, pytest 48/48, vitest
 
 ## Latest Change Summary
 
-Phase 4 complete: full frontend foundation with auth pages, dashboard, profile CRUD, geocoding autocomplete, dark mode, shared navigation, TanStack Query integration, responsive design, and 18 component tests.
+Phase 5 complete: AI synthesis integration with BullMQ async queue, Claude API via @anthropic-ai/sdk, tradition-specific prompt templates (Western/Vedic/Hellenistic), synthesis UI with polling and markdown rendering, 29 total tests across API and web.

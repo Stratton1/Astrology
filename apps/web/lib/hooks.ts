@@ -13,9 +13,11 @@ import {
 import type {
   Profile,
   ChartCalculation,
+  Synthesis,
   CreateProfileRequest,
   UpdateProfileRequest,
   CalculateChartRequest,
+  GenerateSynthesisRequest,
   LoginRequest,
   RegisterRequest,
 } from '@cosmos/types';
@@ -30,6 +32,9 @@ import {
   calculateChart as apiCalculateChart,
   getChart,
   listCharts,
+  generateSynthesis as apiGenerateSynthesis,
+  getSynthesis,
+  listSynthesesForChart,
 } from '@/lib/api';
 import { useCosmosStore } from '@/lib/store';
 
@@ -42,6 +47,8 @@ export const queryKeys = {
   profile: (id: string) => ['profiles', id] as const,
   charts: ['charts'] as const,
   chart: (id: string) => ['charts', id] as const,
+  synthesis: (id: string) => ['synthesis', id] as const,
+  synthesesForChart: (chartId: string) => ['syntheses', chartId] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -247,5 +254,70 @@ export function useCharts() {
       return data.charts ?? [];
     },
     enabled: !!token,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Synthesis hooks
+// ---------------------------------------------------------------------------
+
+interface SynthesisApiResponse {
+  synthesis: Synthesis;
+  message?: string;
+  cached?: boolean;
+}
+
+interface SynthesesListResponse {
+  syntheses: Synthesis[];
+  total: number;
+}
+
+export function useGenerateSynthesis() {
+  const token = useCosmosStore((s) => s.accessToken);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: GenerateSynthesisRequest) => {
+      if (!token) throw new Error('Not authenticated');
+      const res = await apiGenerateSynthesis(payload, token);
+      const data = res as unknown as SynthesisApiResponse;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.synthesesForChart(data.synthesis.chartId),
+      });
+    },
+  });
+}
+
+export function useSynthesis(id: string, polling = false) {
+  const token = useCosmosStore((s) => s.accessToken);
+
+  return useQuery({
+    queryKey: queryKeys.synthesis(id),
+    queryFn: async () => {
+      if (!token) throw new Error('Not authenticated');
+      const res = await getSynthesis(id, token);
+      const data = res as unknown as SynthesisApiResponse;
+      return data.synthesis;
+    },
+    enabled: !!token && !!id,
+    refetchInterval: polling ? 3000 : false,
+  });
+}
+
+export function useSynthesesForChart(chartId: string) {
+  const token = useCosmosStore((s) => s.accessToken);
+
+  return useQuery({
+    queryKey: queryKeys.synthesesForChart(chartId),
+    queryFn: async () => {
+      if (!token) throw new Error('Not authenticated');
+      const res = await listSynthesesForChart(chartId, token);
+      const data = res as unknown as SynthesesListResponse;
+      return data.syntheses ?? [];
+    },
+    enabled: !!token && !!chartId,
   });
 }

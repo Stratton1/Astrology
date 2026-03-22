@@ -218,3 +218,50 @@
 **Risks Mitigated:** Demo auth flow now supplemented with proper login/register UI. All pages use TanStack Query for consistent data fetching.
 
 ---
+
+## Entry 007 — 2026-03-22
+**Phase:** Phase 5 — AI Synthesis
+**Workstream:** BullMQ Queue, Claude API Integration, Synthesis UI
+
+**Files Changed (12 total):**
+- apps/api/package.json (add bullmq, @anthropic-ai/sdk, worker scripts)
+- apps/api/src/lib/queue.ts (new: BullMQ queue setup, job enqueue helper)
+- apps/api/src/lib/prompts.ts (new: tradition-specific synthesis prompt templates for Western, Vedic, Hellenistic)
+- apps/api/src/lib/config.ts (add anthropicApiKey, claudeModel, synthesisMaxTokens)
+- apps/api/src/workers/synthesis.worker.ts (new: BullMQ worker with Claude API integration, retry logic, graceful shutdown)
+- apps/api/src/routes/synthesis.ts (rewrite: BullMQ job enqueue, dedup pending jobs, cache completed syntheses)
+- apps/api/src/__tests__/prompts.test.ts (new: 7 tests for prompt builder)
+- apps/api/src/__tests__/queue.test.ts (new: 1 test for queue module interface)
+- apps/web/lib/hooks.ts (add synthesis hooks: useGenerateSynthesis, useSynthesis, useSynthesesForChart)
+- apps/web/lib/api.ts (fix synthesis endpoint path, export TokenResponse)
+- apps/web/components/SynthesisPanel.tsx (new: synthesis trigger, polling, status display, markdown rendering)
+- apps/web/components/__tests__/SynthesisPanel.test.tsx (new: 3 tests)
+- apps/web/app/chart/[id]/page.tsx (integrate SynthesisPanel below chart details)
+- apps/web/app/chart/page.tsx (fix unused variable, remove profileId from chart request)
+- apps/api/.env (add ANTHROPIC_API_KEY, CLAUDE_MODEL, SYNTHESIS_MAX_TOKENS)
+- .env.example (document CLAUDE_MODEL, SYNTHESIS_MAX_TOKENS)
+
+**Summary:** Complete Phase 5 AI synthesis integration. BullMQ queue for async job processing, Claude API integration via @anthropic-ai/sdk with tradition-specific prompt templates (Western tropical, Vedic Jyotish, Hellenistic classical), synthesis status polling, result caching, and full synthesis UI with generate button, loading animation, markdown content display, and metadata footer.
+
+**Reason:** Phase 5 — integrate AI-powered chart interpretation using Claude API with async job processing.
+
+**Tests Run:**
+- pnpm typecheck: 8/8 pass
+- pnpm build: 5/5 pass
+- API vitest: 8/8 pass (prompts: 7, queue: 1)
+- Web vitest: 21/21 pass (SynthesisPanel: 3 + existing 18)
+- pytest: 48/48 pass
+
+**Docs Updated:** BUILD_LOG.md, PROJECT_SUMMARY.md
+
+**Known Follow-ups:**
+- Set ANTHROPIC_API_KEY env var to enable synthesis (required)
+- Redis must be running for BullMQ queue (docker-compose up -d)
+- Run worker process separately: pnpm --filter @cosmos/api worker:dev
+- Multi-tradition expansion (Phase 6)
+- E2E tests with Playwright (Phase 7)
+
+**Risks Introduced:** AI synthesis latency (15-30s per request), Anthropic API cost per synthesis.
+**Risks Mitigated:** Async queue prevents API blocking. Rate limiting on worker (10 jobs/min). Completed syntheses cached to avoid re-generation. Dedup logic prevents duplicate pending jobs.
+
+---

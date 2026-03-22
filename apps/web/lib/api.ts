@@ -110,7 +110,7 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
 // Auth token response shape
 // ---------------------------------------------------------------------------
 
-interface TokenResponse {
+export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
   user: User;
@@ -240,7 +240,7 @@ export async function generateSynthesis(
   payload: GenerateSynthesisRequest,
   token: string,
 ): Promise<ApiResponse<Synthesis>> {
-  return apiFetch<ApiResponse<Synthesis>>('/synthesis/generate', {
+  return apiFetch<ApiResponse<Synthesis>>('/synthesis', {
     method: 'POST',
     body: payload,
     token,
