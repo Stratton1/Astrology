@@ -52,15 +52,19 @@ function buildCacheKey(input: z.infer<typeof CalculateChartSchema>): string {
 async function callCalcService(
   input: z.infer<typeof CalculateChartSchema>
 ): Promise<unknown> {
-  const response = await fetch(`${CALC_SERVICE_URL}/calculate`, {
+  // Flatten birthData into the format expected by the calc service (NatalChartRequest)
+  const response = await fetch(`${CALC_SERVICE_URL}/calculate/natal`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      birthData: input.birthData,
-      tradition: input.tradition,
+      birthDate: input.birthData.date,
+      birthTime: input.birthData.timeUnknown ? null : (input.birthData.time ?? null),
+      timeUnknown: input.birthData.timeUnknown ?? false,
+      latitude: input.birthData.latitude,
+      longitude: input.birthData.longitude,
       houseSystem: input.houseSystem,
       coordinateSystem: input.coordinateSystem,
-      ayanamsha: input.ayanamsha,
+      ayanamsha: input.ayanamsha ?? null,
     }),
     signal: AbortSignal.timeout(30_000),
   });
@@ -130,7 +134,7 @@ router.post(
               coordinateSystem: existingChart.coordinateSystem,
               houseSystem: existingChart.houseSystem,
               ayanamsha: existingChart.ayanamsha,
-              calculatedData: existingChart.calculatedData,
+              calculatedData: JSON.parse(existingChart.calculatedData),
               createdAt: existingChart.createdAt.toISOString(),
             },
             cached: true,
@@ -151,7 +155,7 @@ router.post(
           coordinateSystem: input.coordinateSystem,
           houseSystem: input.houseSystem,
           ayanamsha: input.ayanamsha ?? null,
-          calculatedData: calculatedData as object,
+          calculatedData: JSON.stringify(calculatedData),
         },
       });
 
@@ -176,7 +180,7 @@ router.post(
           coordinateSystem: chart.coordinateSystem,
           houseSystem: chart.houseSystem,
           ayanamsha: chart.ayanamsha,
-          calculatedData: chart.calculatedData,
+          calculatedData: JSON.parse(chart.calculatedData),
           createdAt: chart.createdAt.toISOString(),
         },
         cached: false,
@@ -226,7 +230,7 @@ router.get(
           coordinateSystem: chart.coordinateSystem,
           houseSystem: chart.houseSystem,
           ayanamsha: chart.ayanamsha,
-          calculatedData: chart.calculatedData,
+          calculatedData: JSON.parse(chart.calculatedData),
           createdAt: chart.createdAt.toISOString(),
         },
       });

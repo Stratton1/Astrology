@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -40,7 +40,7 @@ model Chart {
   coordinateSystem String      @map("coordinate_system")
   houseSystem      String      @map("house_system")
   ayanamsha        String?
-  calculatedData   Json        @map("calculated_data")
+  calculatedData   String      @map("calculated_data")
   createdAt        DateTime    @default(now()) @map("created_at")
   profile          Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
   syntheses        Synthesis[]

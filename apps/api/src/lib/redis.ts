@@ -4,14 +4,20 @@ import { logger } from './logger';
 
 export const redis = new Redis(config.redisUrl, {
   lazyConnect: true,
-  enableReadyCheck: true,
+  enableReadyCheck: false,
+  maxRetriesPerRequest: 1,
+  connectTimeout: 3000,
   retryStrategy(times) {
-    const delay = Math.min(times * 100, 3000);
+    if (times > 3) {
+      logger.warn('Redis unavailable — caching disabled');
+      return null; // stop retrying
+    }
+    const delay = Math.min(times * 200, 2000);
     logger.warn({ times, delay }, 'Redis connection retry');
     return delay;
   },
   reconnectOnError(err) {
-    const targetErrors = ['READONLY', 'ECONNRESET', 'ECONNREFUSED'];
+    const targetErrors = ['READONLY', 'ECONNRESET'];
     if (targetErrors.some((e) => err.message.includes(e))) {
       return true;
     }

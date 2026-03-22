@@ -110,7 +110,6 @@ class NatalChartRequest(BaseModel):
             return v
         allowed = {
             "lahiri", "raman", "krishnamurti", "fagan_bradley",
-            "de_luce", "true_citra", "true_revati", "ushashashi",
         }
         if v.lower() not in allowed:
             raise ValueError(f"ayanamsha must be one of: {', '.join(sorted(allowed))}")

@@ -113,3 +113,38 @@
 **Risks Mitigated:** Build pipeline proven green. Calculation accuracy validated against known reference data.
 
 ---
+
+## Entry 004 — 2026-03-22
+**Phase:** Phase 3 — End-to-End Vertical Slice
+**Workstream:** API + Calc Integration, Database, Full Flow
+
+**Files Changed:**
+- apps/api/prisma/schema.prisma (PostgreSQL → SQLite for dev, Json → String for SQLite compat)
+- apps/api/src/routes/charts.ts (fix calc service URL /calculate/natal, flatten request body, JSON.stringify/parse calculatedData)
+- apps/api/src/lib/redis.ts (graceful degradation when Redis unavailable, connection timeout, max retries)
+- apps/calc/app/models/requests.py (remove unavailable ayanamsha constants)
+- apps/api/.env (created for local development)
+
+**Summary:** First end-to-end vertical slice working. Full flow validated: register user → create profile (encrypted birth data) → calculate natal chart (API → calc service → Swiss Ephemeris) → receive chart data with 11 planets, 12 houses, 14 aspects. Tested with Albert Einstein's birth data (1879-03-14, Ulm, Germany).
+
+**Reason:** Phase 3 — wire all services together and prove the architecture works end-to-end.
+
+**Tests Run:**
+- curl POST /api/v1/auth/register → 201 (user created, JWT tokens returned)
+- curl POST /api/v1/profiles → 201 (profile created with encrypted birth data)
+- curl POST /api/v1/charts/calculate → 201 (chart calculated via calc service, stored in DB)
+- Einstein chart: Sun Pisces 23.5°, Moon Sagittarius 14.9°, ASC Cancer 19.7°
+- 48/48 pytest still passing
+
+**Docs Updated:** BUILD_LOG.md, PROJECT_SUMMARY.md
+
+**Known Follow-ups:**
+- Switch back to PostgreSQL when Docker available (SQLite is dev-only stopgap)
+- Add Redis for caching (works without it, just no cache)
+- Frontend integration with the API
+- Login flow + token refresh testing
+
+**Risks Introduced:** SQLite dev database is not production-grade (no Json type, single-writer).
+**Risks Mitigated:** Full architecture validated end-to-end. Service boundaries proven correct. Encryption/decryption working.
+
+---
