@@ -8,6 +8,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { Tradition, HouseSystem } from '@cosmos/types';
 import { useCosmosStore } from '@/lib/store';
+import { useCreateProfile, useCalculateChart } from '@/lib/hooks';
+import { register as apiRegister } from '@/lib/api';
+import { LocationAutocomplete } from '@/components/LocationAutocomplete';
 
 const chartFormSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
@@ -57,7 +60,9 @@ const HOUSE_SYSTEMS: { value: HouseSystem; label: string; traditions: Tradition[
 
 export default function ChartPage() {
   const router = useRouter();
-  const { accessToken, isAuthenticated } = useCosmosStore();
+  const { accessToken, isAuthenticated, setAuth } = useCosmosStore();
+  const createProfile = useCreateProfile();
+  const calculateChart = useCalculateChart();
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -72,12 +77,16 @@ export default function ChartPage() {
       tradition: 'western',
       houseSystem: 'placidus',
       timeUnknown: false,
-      timezoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezoneId: typeof window !== 'undefined'
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+        : 'UTC',
+      locationName: '',
     },
   });
 
   const selectedTradition = watch('tradition');
   const timeUnknown = watch('timeUnknown');
+  const locationName = watch('locationName');
 
   const availableHouseSystems = HOUSE_SYSTEMS.filter((hs) =>
     hs.traditions.includes(selectedTradition),
@@ -85,31 +94,33 @@ export default function ChartPage() {
 
   const onSubmit = async (data: ChartFormValues) => {
     setError(null);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
     try {
-      // If not authenticated, register a quick anonymous-style account
+      // If not authenticated, create a quick anonymous account
       let token = accessToken;
       if (!isAuthenticated || !token) {
-        // For demo: auto-register/login with a temp account
         const tempEmail = `demo-${Date.now()}@cosmos.local`;
-        const regRes = await fetch(`${apiUrl}/api/v1/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: tempEmail, password: 'cosmos-demo-12345' }),
+        const regRes = await apiRegister({
+          email: tempEmail,
+          password: 'cosmos-demo-12345',
         });
-        if (!regRes.ok) throw new Error('Failed to create session');
-        const regData = await regRes.json() as { accessToken: string; refreshToken: string; user: { id: string; email: string; createdAt: string } };
+        const regData = regRes as unknown as {
+          accessToken: string;
+          refreshToken: string;
+          user: { id: string; email: string; createdAt: string };
+        };
         token = regData.accessToken;
-        useCosmosStore.getState().setAuth({
-          user: { id: regData.user.id, email: regData.user.email, createdAt: regData.user.createdAt, updatedAt: regData.user.createdAt },
+        setAuth({
+          user: {
+            id: regData.user.id,
+            email: regData.user.email,
+            createdAt: regData.user.createdAt,
+            updatedAt: regData.user.createdAt,
+          },
           accessToken: regData.accessToken,
           refreshToken: regData.refreshToken,
         });
       }
-
-      headers['Authorization'] = `Bearer ${token}`;
 
       const birthData = {
         date: data.date,
@@ -122,47 +133,30 @@ export default function ChartPage() {
         utcOffset: 0,
       };
 
-      // Step 1: Create a profile
-      const profileRes = await fetch(`${apiUrl}/api/v1/profiles`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ name: data.locationName + ' Chart', birthData }),
-      });
-      if (!profileRes.ok) {
-        const err = await profileRes.json().catch(() => ({}));
-        throw new Error((err as { error?: { message?: string } }).error?.message || 'Failed to create profile');
-      }
-      const profileData = await profileRes.json() as { profile: { id: string } };
-
-      // Step 2: Calculate chart
-      const chartRes = await fetch(`${apiUrl}/api/v1/charts/calculate`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          profileId: profileData.profile.id,
-          birthData,
-          tradition: data.tradition,
-          houseSystem: data.houseSystem,
-          coordinateSystem: data.tradition === 'vedic' ? 'sidereal' : 'tropical',
-        }),
+      // Create profile
+      const profile = await createProfile.mutateAsync({
+        name: `${data.locationName} Chart`,
+        birthData,
       });
 
-      if (!chartRes.ok) {
-        const err = await chartRes.json().catch(() => ({}));
-        throw new Error((err as { error?: { message?: string } }).error?.message || `API error: ${chartRes.status}`);
-      }
+      // Calculate chart
+      const chartResult = await calculateChart.mutateAsync({
+        profileId: profile.id,
+        birthData,
+        tradition: data.tradition,
+        houseSystem: data.houseSystem,
+        coordinateSystem: data.tradition === 'vedic' ? 'sidereal' : 'tropical',
+      });
 
-      const chartData = await chartRes.json() as { chart: { id: string } };
-      router.push(`/chart/${chartData.chart.id}`);
+      router.push(`/chart/${chartResult.chart.id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to calculate chart';
       setError(message);
-      console.error('Failed to calculate chart:', err);
     }
   };
 
   return (
-    <main className="min-h-screen px-6 py-12">
+    <main className="min-h-[80vh] px-4 sm:px-6 py-8 sm:py-12">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-10">
@@ -176,7 +170,7 @@ export default function ChartPage() {
         </div>
 
         {error && (
-          <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-4 text-red-300 text-sm">
+          <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-4 text-red-300 text-sm mb-6">
             {error}
           </div>
         )}
@@ -236,26 +230,18 @@ export default function ChartPage() {
               )}
             </div>
 
-            {/* Location Name */}
-            <div>
-              <label htmlFor="locationName" className="cosmos-label">
-                Birth Location <span className="text-cosmos-gold">*</span>
-              </label>
-              <input
-                id="locationName"
-                type="text"
-                {...register('locationName')}
-                placeholder="e.g. New York, NY, USA"
-                className="cosmos-input"
-                aria-invalid={!!errors.locationName}
-              />
-              {errors.locationName && (
-                <p className="mt-1 text-sm text-red-400">{errors.locationName.message}</p>
-              )}
-              <p className="mt-1 text-xs text-cosmos-silver/50">
-                Enter coordinates manually below (geocoding integration coming soon).
-              </p>
-            </div>
+            {/* Location Autocomplete */}
+            <LocationAutocomplete
+              value={locationName}
+              onChange={(val) => setValue('locationName', val)}
+              onSelect={(result) => {
+                setValue('locationName', result.locationName);
+                setValue('latitude', result.latitude);
+                setValue('longitude', result.longitude);
+                setValue('timezoneId', result.timezoneId);
+              }}
+              error={errors.locationName?.message}
+            />
 
             {/* Coordinates */}
             <div className="grid grid-cols-2 gap-4">
@@ -339,7 +325,6 @@ export default function ChartPage() {
                     {...register('tradition')}
                     onChange={() => {
                       setValue('tradition', value);
-                      // Reset house system to first available
                       const available = HOUSE_SYSTEMS.filter((hs) =>
                         hs.traditions.includes(value),
                       );
@@ -377,8 +362,8 @@ export default function ChartPage() {
           </section>
 
           {/* Submit */}
-          <div className="flex justify-end gap-4">
-            <Link href="/" className="btn-secondary">
+          <div className="flex flex-col sm:flex-row justify-end gap-4">
+            <Link href="/" className="btn-secondary text-center">
               Cancel
             </Link>
             <button
@@ -387,12 +372,12 @@ export default function ChartPage() {
               className="btn-primary min-w-[160px]"
             >
               {isSubmitting ? (
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-2 justify-center">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                  Calculating…
+                  Calculating...
                 </span>
               ) : (
                 'Calculate Chart'

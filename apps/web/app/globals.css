@@ -99,3 +99,31 @@
     box-shadow: 0 0 0 1px rgba(75, 171, 247, 0.3), 0 0 20px rgba(75, 171, 247, 0.1);
   }
 }
+
+/* Light mode overrides */
+html:not(.dark) body {
+  @apply bg-white text-gray-900;
+  background-image: none;
+}
+
+html:not(.dark) .cosmos-card {
+  @apply bg-white border-gray-200;
+  background: white;
+}
+
+html:not(.dark) .cosmos-input {
+  @apply bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400
+    focus:border-blue-500 focus:ring-blue-500;
+}
+
+html:not(.dark) .cosmos-label {
+  @apply text-gray-700;
+}
+
+html:not(.dark) .btn-ghost {
+  @apply text-gray-600 hover:text-gray-900 hover:bg-gray-100;
+}
+
+html:not(.dark) nav {
+  @apply bg-white/90 border-gray-200;
+}

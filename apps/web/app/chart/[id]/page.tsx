@@ -1,52 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useCosmosStore } from '@/lib/store';
+import { useChart } from '@/lib/hooks';
 import { ChartWheel } from '@/components/ChartWheel';
 import { PlanetTable } from '@/components/PlanetTable';
-
-interface ChartData {
-  id: string;
-  tradition: string;
-  chartType: string;
-  coordinateSystem: string;
-  houseSystem: string;
-  ayanamsha: string | null;
-  calculatedData: {
-    coordinateSystem: string;
-    houseSystem: string;
-    ayanamsha: string | null;
-    planets: Array<{
-      planet: string;
-      longitude: number;
-      latitude: number;
-      speed: number;
-      retrograde: boolean;
-      sign: string;
-      signDegree: number;
-      house: number | null;
-    }>;
-    houses: Array<{
-      house: number;
-      longitude: number;
-      sign: string;
-      signDegree: number;
-    }>;
-    aspects: Array<{
-      planet1: string;
-      planet2: string;
-      aspectType: string;
-      exactAngle: number;
-      orb: number;
-      applying: boolean;
-    }>;
-    ascendant: number;
-    midheaven: number;
-    calculatedAt: string;
-  };
-  createdAt: string;
-}
 
 const ASPECT_SYMBOLS: Record<string, string> = {
   conjunction: '☌',
@@ -57,78 +14,89 @@ const ASPECT_SYMBOLS: Record<string, string> = {
 };
 
 export default function ChartDisplayPage({ params }: { params: { id: string } }) {
-  const { accessToken } = useCosmosStore();
-  const [chart, setChart] = useState<ChartData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: chart, isLoading, error } = useChart(params.id);
 
-  useEffect(() => {
-    async function fetchChart() {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-      try {
-        const headers: Record<string, string> = {};
-        if (accessToken) {
-          headers['Authorization'] = `Bearer ${accessToken}`;
-        }
-
-        const res = await fetch(`${apiUrl}/api/v1/charts/${params.id}`, { headers });
-        if (!res.ok) {
-          setError(`Failed to load chart (${res.status})`);
-          return;
-        }
-
-        const json = (await res.json()) as { chart: ChartData };
-        setChart(json.chart);
-      } catch {
-        setError('Failed to load chart');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchChart();
-  }, [params.id, accessToken]);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <main className="min-h-screen px-6 py-12 flex items-center justify-center">
+      <main className="min-h-[80vh] px-6 py-12 flex items-center justify-center">
         <div className="text-cosmos-silver/60">Loading chart...</div>
       </main>
     );
   }
 
-  const calc = chart?.calculatedData;
+  // The chart data may come with calculatedData nested or flat — handle both
+  const calc = (chart as unknown as { calculatedData?: unknown })?.calculatedData ?? chart;
+  const chartMeta = chart as unknown as {
+    id?: string;
+    tradition?: string;
+    houseSystem?: string;
+    coordinateSystem?: string;
+  };
+  const calcData = calc as {
+    planets?: Array<{
+      planet: string;
+      longitude: number;
+      latitude: number;
+      speed: number;
+      retrograde: boolean;
+      sign: string;
+      signDegree: number;
+      house: number | null;
+    }>;
+    houses?: Array<{
+      house: number;
+      longitude?: number;
+      cuspLongitude?: number;
+      sign: string;
+      signDegree: number;
+    }>;
+    aspects?: Array<{
+      planet1: string;
+      planet2: string;
+      aspectType: string;
+      exactAngle: number;
+      orb: number;
+      applying: boolean;
+    }>;
+    ascendant?: number;
+    midheaven?: number;
+    coordinateSystem?: string;
+    houseSystem?: string;
+  };
 
   return (
-    <main className="min-h-screen px-6 py-12">
+    <main className="min-h-[80vh] px-4 sm:px-6 py-8 sm:py-12">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <Link
-            href="/chart"
+            href="/dashboard"
             className="text-cosmos-silver/60 hover:text-cosmos-sky text-sm inline-flex items-center gap-1 transition-colors mb-4"
           >
-            ← New Chart
+            ← Dashboard
           </Link>
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
             <div>
               <h1 className="font-display text-3xl font-bold text-gradient-cosmos">
                 {chart ? 'Natal Chart' : 'Chart Not Found'}
               </h1>
-              {chart && (
+              {chartMeta.tradition && (
                 <p className="text-cosmos-silver/60 text-sm mt-1">
-                  {chart.tradition.charAt(0).toUpperCase() + chart.tradition.slice(1)} •{' '}
-                  {chart.houseSystem.replace('_', ' ')} houses •{' '}
-                  {chart.coordinateSystem} zodiac
+                  {chartMeta.tradition.charAt(0).toUpperCase() + chartMeta.tradition.slice(1)} &middot;{' '}
+                  {(chartMeta.houseSystem ?? '').replace('_', ' ')} houses &middot;{' '}
+                  {chartMeta.coordinateSystem} zodiac
                 </p>
               )}
             </div>
+            <Link href="/chart" className="btn-secondary text-sm py-2 shrink-0">
+              New Chart
+            </Link>
           </div>
         </div>
 
-        {error || !chart || !calc ? (
+        {error || !chart || !calcData.planets ? (
           <div className="cosmos-card text-center py-16">
             <p className="text-cosmos-silver/60 text-lg mb-4">
-              {error || 'Chart could not be loaded.'}
+              {error instanceof Error ? error.message : 'Chart could not be loaded.'}
             </p>
             <Link href="/chart" className="btn-primary">
               Calculate a Chart
@@ -143,15 +111,15 @@ export default function ChartDisplayPage({ params }: { params: { id: string } })
                   Chart Wheel
                 </h2>
                 <ChartWheel
-                  planets={calc.planets as Parameters<typeof ChartWheel>[0]['planets']}
-                  houses={calc.houses.map((h) => ({
+                  planets={calcData.planets as Parameters<typeof ChartWheel>[0]['planets']}
+                  houses={(calcData.houses ?? []).map((h) => ({
                     house: h.house,
-                    cuspLongitude: h.longitude,
+                    cuspLongitude: h.cuspLongitude ?? h.longitude ?? 0,
                     sign: h.sign,
                     signDegree: h.signDegree,
                   })) as Parameters<typeof ChartWheel>[0]['houses']}
-                  ascendant={calc.ascendant}
-                  midheaven={calc.midheaven}
+                  ascendant={calcData.ascendant ?? 0}
+                  midheaven={calcData.midheaven ?? 0}
                   size={500}
                 />
               </div>
@@ -162,19 +130,17 @@ export default function ChartDisplayPage({ params }: { params: { id: string } })
                   Planet Positions
                 </h2>
                 <PlanetTable
-                  planets={calc.planets as Parameters<typeof PlanetTable>[0]['planets']}
+                  planets={calcData.planets as Parameters<typeof PlanetTable>[0]['planets']}
                 />
               </div>
             </div>
 
             {/* Aspects Table */}
-            <div className="cosmos-card">
-              <h2 className="font-display text-lg font-semibold text-cosmos-lavender mb-6">
-                Aspects ({calc.aspects.length})
-              </h2>
-              {calc.aspects.length === 0 ? (
-                <p className="text-cosmos-silver/50 text-sm">No aspects calculated.</p>
-              ) : (
+            {calcData.aspects && calcData.aspects.length > 0 && (
+              <div className="cosmos-card">
+                <h2 className="font-display text-lg font-semibold text-cosmos-lavender mb-6">
+                  Aspects ({calcData.aspects.length})
+                </h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -187,7 +153,7 @@ export default function ChartDisplayPage({ params }: { params: { id: string } })
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-cosmos-midnight/50">
-                      {calc.aspects.map((a, i) => (
+                      {calcData.aspects.map((a, i) => (
                         <tr key={i} className="hover:bg-cosmos-midnight/20 transition-colors">
                           <td className="py-2 text-cosmos-mist">{a.planet1}</td>
                           <td className="py-2 text-cosmos-gold font-serif text-base">
@@ -206,10 +172,10 @@ export default function ChartDisplayPage({ params }: { params: { id: string } })
                     </tbody>
                   </table>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Chart Info */}
+            {/* Chart Details */}
             <div className="cosmos-card">
               <h2 className="font-display text-lg font-semibold text-cosmos-silver mb-4">
                 Chart Details
@@ -217,19 +183,27 @@ export default function ChartDisplayPage({ params }: { params: { id: string } })
               <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                 <div>
                   <dt className="text-cosmos-silver/50">Ascendant</dt>
-                  <dd className="text-cosmos-mist font-medium">{calc.ascendant.toFixed(2)}°</dd>
+                  <dd className="text-cosmos-mist font-medium">
+                    {(calcData.ascendant ?? 0).toFixed(2)}°
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-cosmos-silver/50">Midheaven</dt>
-                  <dd className="text-cosmos-mist font-medium">{calc.midheaven.toFixed(2)}°</dd>
+                  <dd className="text-cosmos-mist font-medium">
+                    {(calcData.midheaven ?? 0).toFixed(2)}°
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-cosmos-silver/50">Coordinate System</dt>
-                  <dd className="text-cosmos-mist font-medium">{calc.coordinateSystem}</dd>
+                  <dd className="text-cosmos-mist font-medium">
+                    {calcData.coordinateSystem ?? chartMeta.coordinateSystem}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-cosmos-silver/50">House System</dt>
-                  <dd className="text-cosmos-mist font-medium">{calc.houseSystem}</dd>
+                  <dd className="text-cosmos-mist font-medium">
+                    {calcData.houseSystem ?? chartMeta.houseSystem}
+                  </dd>
                 </div>
               </dl>
             </div>

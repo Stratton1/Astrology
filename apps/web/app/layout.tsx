@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/Providers';
+import { Navbar } from '@/components/Navbar';
+import { ThemeScript } from '@/components/ThemeScript';
 
 export const metadata: Metadata = {
   title: 'COSMOS — Astrology Platform',
@@ -22,8 +24,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className="min-h-screen bg-cosmos-void text-cosmos-mist font-sans antialiased">
-        <Providers>{children}</Providers>
+      <head>
+        <ThemeScript />
+      </head>
+      <body className="min-h-screen bg-cosmos-void text-cosmos-mist font-sans antialiased dark:bg-cosmos-void dark:text-cosmos-mist bg-white text-gray-900">
+        <Providers>
+          <Navbar />
+          {children}
+        </Providers>
       </body>
     </html>
   );

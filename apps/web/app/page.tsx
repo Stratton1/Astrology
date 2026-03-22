@@ -2,22 +2,7 @@ import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <main className="flex flex-col min-h-screen">
-      {/* Navigation */}
-      <nav className="border-b border-cosmos-midnight/50 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <span className="font-display text-xl font-bold text-gradient-cosmos">COSMOS</span>
-          <div className="flex items-center gap-4">
-            <Link href="/chart" className="btn-ghost text-sm">
-              New Chart
-            </Link>
-            <Link href="/chart" className="btn-primary text-sm py-2">
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
-
+    <main className="flex flex-col min-h-[calc(100vh-57px)]">
       {/* Hero */}
       <section className="flex-1 flex flex-col items-center justify-center px-6 py-24 text-center">
         {/* Star field decoration */}

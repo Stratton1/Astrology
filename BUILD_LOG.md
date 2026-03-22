@@ -170,3 +170,51 @@
 **Risks Mitigated:** Frontend ↔ API contract validated. All type errors resolved.
 
 ---
+
+## Entry 006 — 2026-03-22
+**Phase:** Phase 4 — Frontend Foundation
+**Workstream:** Auth UI, Dashboard, Profile Management, Responsive Design, Testing
+
+**Files Changed (20 total):**
+- apps/web/app/layout.tsx (add shared Navbar, ThemeScript for dark mode persistence)
+- apps/web/app/page.tsx (remove inline nav, use shared Navbar)
+- apps/web/app/login/page.tsx (new: login page with react-hook-form + Zod validation)
+- apps/web/app/register/page.tsx (new: registration page with password confirmation)
+- apps/web/app/dashboard/page.tsx (new: profile list, chart count, quick actions, AuthGuard)
+- apps/web/app/profile/[id]/page.tsx (new: profile detail view with birth data display)
+- apps/web/app/profile/[id]/edit/page.tsx (new: profile edit form with Zod validation)
+- apps/web/app/chart/page.tsx (refactor to use TanStack Query mutations + LocationAutocomplete)
+- apps/web/app/chart/[id]/page.tsx (refactor to use useChart hook, responsive layout)
+- apps/web/app/globals.css (add light mode overrides)
+- apps/web/components/Navbar.tsx (new: shared sticky nav with auth state, active route, mobile nav)
+- apps/web/components/DarkModeToggle.tsx (new: dark/light mode toggle with localStorage persistence)
+- apps/web/components/ThemeScript.tsx (new: inline script to prevent theme flash on load)
+- apps/web/components/AuthGuard.tsx (new: route protection with redirect to /login)
+- apps/web/components/LocationAutocomplete.tsx (new: geocoding autocomplete via OpenCage API)
+- apps/web/lib/hooks.ts (new: TanStack Query hooks for auth, profiles, charts)
+- apps/web/vitest.config.ts (new: Vitest config with JSX, jsdom, path aliases)
+- apps/web/vitest.setup.ts (new: testing-library/jest-dom matchers)
+- apps/web/components/__tests__/PlanetTable.test.tsx (new: 7 tests)
+- apps/web/components/__tests__/DarkModeToggle.test.tsx (new: 3 tests)
+- apps/web/lib/__tests__/store.test.ts (new: 4 tests)
+- apps/web/lib/__tests__/hooks.test.tsx (new: 4 tests)
+
+**Summary:** Complete Phase 4 frontend foundation. Auth pages (login/register), dashboard with profile management (CRUD), geocoding autocomplete, dark mode toggle, shared navigation, responsive layout, TanStack Query integration across all pages, and 18 component/unit tests.
+
+**Reason:** Phase 4 — build the full frontend user experience with proper auth UI, profile management, and data fetching patterns.
+
+**Tests Run:**
+- Vitest: 18/18 pass (PlanetTable, DarkModeToggle, store, query keys)
+- Component tests: rendering, interaction, state management validated
+
+**Docs Updated:** BUILD_LOG.md, PROJECT_SUMMARY.md
+
+**Known Follow-ups:**
+- Add OpenCage API key for geocoding autocomplete in production
+- E2E tests with Playwright (Phase 7)
+- AI synthesis UI (Phase 5)
+
+**Risks Introduced:** None.
+**Risks Mitigated:** Demo auth flow now supplemented with proper login/register UI. All pages use TanStack Query for consistent data fetching.
+
+---

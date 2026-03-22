@@ -14,7 +14,7 @@ Turborepo monorepo with three services (web, api, calc) and three shared package
 
 ## Current Build Status
 
-Phase 3: End-to-End Vertical Slice — Complete
+Phase 4: Frontend Foundation — Complete
 
 ---
 
@@ -31,16 +31,23 @@ Phase 3: End-to-End Vertical Slice — Complete
 - CI pipeline (GitHub Actions — lint, typecheck, test, build)
 - Docker Compose (PostgreSQL, Redis)
 - Dockerfiles for all three services
-
----
-
 - End-to-end vertical slice (register → profile → chart calculation working)
 - SQLite local development database with Prisma
 - Redis graceful degradation (works without Redis)
+- Auth UI: login and register pages with Zod validation
+- Dashboard with profile list, chart counts, quick actions
+- Profile management: view, edit, delete with AuthGuard protection
+- Geocoding autocomplete (LocationAutocomplete component, OpenCage API)
+- Dark mode toggle with localStorage persistence and flash-prevention script
+- Shared Navbar with auth state, active route highlighting, mobile responsive nav
+- TanStack Query hooks for all API operations (auth, profiles, charts)
+- Frontend component tests (Vitest + React Testing Library — 18 tests)
+
+---
 
 ## In-Progress Modules
 
-- Frontend integration with live API
+None currently.
 
 ---
 
@@ -57,6 +64,7 @@ None currently.
 - BullMQ for async synthesis jobs (DEC-003)
 - Express over Fastify for API (ecosystem maturity)
 - FastAPI for calc service (Python async, auto-docs)
+- TanStack Query for all server state (consistent caching, refetching)
 
 ---
 
@@ -68,16 +76,16 @@ Local development only. No staging or production deployed.
 
 ## Current Test Status
 
-All quality gates pass: pnpm typecheck 8/8, pnpm build 5/5, pytest 48/48. End-to-end flow validated via curl.
+All quality gates pass: pnpm typecheck 8/8, pnpm build 5/5, pytest 48/48, vitest 18/18. End-to-end flow validated via curl.
 
 ---
 
 ## Immediate Next Priorities
 
-1. Connect frontend to live API (chart creation form → API → display)
+1. AI synthesis integration (Phase 5) — BullMQ queue, Claude API, synthesis UI
 2. Switch to PostgreSQL when Docker is available
 3. Add Redis for production caching
-4. Implement AI synthesis (Phase 5)
+4. Multi-tradition expansion (Phase 6) — Vedic sidereal, Hellenistic features
 
 ---
 
@@ -85,7 +93,7 @@ All quality gates pass: pnpm typecheck 8/8, pnpm build 5/5, pytest 48/48. End-to
 
 - Swiss Ephemeris compilation across platforms
 - AI synthesis latency and cost
-- SVG chart rendering complexity
+- OpenCage API key needed for geocoding autocomplete in production
 
 ---
 
@@ -97,4 +105,4 @@ All quality gates pass: pnpm typecheck 8/8, pnpm build 5/5, pytest 48/48. End-to
 
 ## Latest Change Summary
 
-Phase 3 complete: end-to-end vertical slice working. Register → profile → chart calculation → data returned. Einstein chart validated.
+Phase 4 complete: full frontend foundation with auth pages, dashboard, profile CRUD, geocoding autocomplete, dark mode, shared navigation, TanStack Query integration, responsive design, and 18 component tests.
