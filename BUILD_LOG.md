@@ -148,3 +148,25 @@
 **Risks Mitigated:** Full architecture validated end-to-end. Service boundaries proven correct. Encryption/decryption working.
 
 ---
+
+## Entry 005 — 2026-03-22
+**Phase:** Phase 3 — Frontend Integration
+**Workstream:** Frontend ↔ API wiring, auth flow, chart display
+
+**Files Changed:**
+- apps/web/lib/api.ts (fix default API URL: 8000 → 3001)
+- apps/web/app/chart/page.tsx (add auth flow, profile creation, correct response shape, error display)
+- apps/web/app/chart/[id]/page.tsx (rewrite as client component with auth, read from calculatedData, wire ChartWheel + PlanetTable)
+- apps/api/src/lib/prisma.ts (new: Prisma client singleton)
+- .env.example (fix JWT_ACCESS_TTL → JWT_ACCESS_EXPIRES_IN, add JWT_REFRESH_SECRET)
+
+**Summary:** Frontend now properly authenticates, creates profiles, calculates charts via the API, and displays results with the D3.js chart wheel and planet table components. Fixed all response shape mismatches between API and frontend.
+
+**Tests Run:** pnpm typecheck 8/8, pnpm build 5/5.
+
+**Docs Updated:** BUILD_LOG.md
+
+**Risks Introduced:** Demo auth flow auto-creates temp accounts (acceptable for dev, needs proper auth UI for production).
+**Risks Mitigated:** Frontend ↔ API contract validated. All type errors resolved.
+
+---
